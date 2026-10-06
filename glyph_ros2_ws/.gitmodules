@@ -1,0 +1,3 @@
+[submodule "src/unitree_go2"]
+	path = src/unitree_go2
+	url = https://github.com/Glyph-Org/unitree_go2.git
