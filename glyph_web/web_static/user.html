@@ -1,0 +1,445 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Glyph Drink Order</title>
+  <style>
+    :root {
+      --bg: #f4efe7;
+      --panel: rgba(255, 252, 247, 0.96);
+      --ink: #1e1d1a;
+      --muted: #6f6a61;
+      --accent: #0d8a72;
+      --accent-soft: #8fd694;
+      --accent-2: #ef8354;
+      --line: rgba(30, 29, 26, 0.12);
+      --shadow: 0 20px 50px rgba(59, 46, 34, 0.12);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+      font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top left, rgba(13, 138, 114, 0.18), transparent 26%),
+        radial-gradient(circle at bottom right, rgba(239, 131, 84, 0.18), transparent 24%),
+        linear-gradient(180deg, #f7f1e8 0%, #efe4d6 100%);
+    }
+
+    .shell {
+      width: min(100%, 720px);
+      display: grid;
+      gap: 12px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      padding: 18px;
+    }
+
+    h1, h2, p { margin: 0; }
+
+    h1 {
+      font-size: 1.5rem;
+      font-family: "IBM Plex Mono", monospace;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    h2 {
+      font-size: 0.76rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .hero {
+      display: grid;
+      gap: 10px;
+      background: linear-gradient(135deg, rgba(13, 138, 114, 0.1), rgba(255, 252, 247, 0.96));
+    }
+
+    .hero p {
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .landmark-name {
+      color: var(--accent);
+      font-family: "IBM Plex Mono", monospace;
+    }
+
+    .flavors {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 999px;
+      padding: 12px 14px;
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 140ms ease, opacity 140ms ease;
+    }
+
+    button:hover { transform: translateY(-1px); }
+    button:active { transform: translateY(0); }
+
+    .flavor {
+      background: rgba(30, 29, 26, 0.08);
+      color: var(--ink);
+    }
+
+    .flavor.active {
+      background: var(--accent);
+      color: white;
+      box-shadow: inset 0 0 0 2px rgba(255, 252, 247, 0.18);
+    }
+
+    .primary {
+      background: var(--accent-2);
+      color: white;
+      width: 100%;
+      margin-top: 12px;
+    }
+
+    .primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .metric {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.72);
+    }
+
+    .metric strong {
+      display: block;
+      margin-top: 4px;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.92rem;
+    }
+
+    .queue-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .order-list {
+      display: grid;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .queue-item {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 10px 12px;
+      background: rgba(255, 255, 255, 0.72);
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(13, 138, 114, 0.1);
+      color: var(--accent);
+      font-size: 0.8rem;
+      font-family: "IBM Plex Mono", monospace;
+    }
+
+    .status-pill::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+    }
+
+    .error {
+      color: #b5423c;
+      font-size: 0.92rem;
+      min-height: 1.2em;
+    }
+
+    @media (max-width: 720px) {
+      .flavors,
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="panel hero">
+      <h1>Drink Request</h1>
+      <p>Place an order for <span class="landmark-name" id="landmarkName">loading...</span>.</p>
+      <div class="status-pill" id="orderStatusPill">Waiting for selection</div>
+    </section>
+
+    <section class="panel">
+      <h2>Choose Flavor</h2>
+      <div class="flavors">
+        <button class="flavor" data-flavor="1">Flavor 1</button>
+        <button class="flavor" data-flavor="2">Flavor 2</button>
+        <button class="flavor" data-flavor="3">Flavor 3</button>
+      </div>
+      <button class="primary" id="submitOrder" disabled>Confirm Order</button>
+      <p class="error" id="errorText"></p>
+    </section>
+
+    <section class="panel">
+      <h2>Your Order</h2>
+      <div class="grid">
+        <div class="metric">Landmark<strong id="orderLandmark">--</strong></div>
+        <div class="metric">Flavor<strong id="orderFlavor">--</strong></div>
+        <div class="metric">Status<strong id="orderStatus">--</strong></div>
+        <div class="metric">Queue Position<strong id="orderQueuePosition">--</strong></div>
+      </div>
+      <div class="order-list" id="orderList"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Robot Queue</h2>
+      <div class="grid">
+        <div class="metric">Queue State<strong id="queueStatus">--</strong></div>
+        <div class="metric">Currently Dispensing<strong id="dispenseStatus">--</strong></div>
+      </div>
+      <div class="queue-list" id="queueList"></div>
+    </section>
+  </main>
+
+  <script>
+    const state = {
+      landmarkId: null,
+      landmark: null,
+      selectedFlavor: null,
+      orders: [],
+      queue: null,
+      pollHandle: null,
+    };
+
+    const els = {
+      landmarkName: document.getElementById("landmarkName"),
+      orderStatusPill: document.getElementById("orderStatusPill"),
+      submitOrder: document.getElementById("submitOrder"),
+      errorText: document.getElementById("errorText"),
+      orderLandmark: document.getElementById("orderLandmark"),
+      orderFlavor: document.getElementById("orderFlavor"),
+      orderStatus: document.getElementById("orderStatus"),
+      orderQueuePosition: document.getElementById("orderQueuePosition"),
+      orderList: document.getElementById("orderList"),
+      queueStatus: document.getElementById("queueStatus"),
+      dispenseStatus: document.getElementById("dispenseStatus"),
+      queueList: document.getElementById("queueList"),
+      flavorButtons: [...document.querySelectorAll(".flavor")],
+    };
+
+    function pathLandmarkId() {
+      const parts = location.pathname.split("/").filter(Boolean);
+      return Number(parts[parts.length - 1]);
+    }
+
+    async function fetchJson(url, options = {}) {
+      const response = await fetch(url, options);
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.detail || `Request failed with status ${response.status}`);
+      }
+      return data;
+    }
+
+    function setError(message = "") {
+      els.errorText.textContent = message;
+    }
+
+    function updateFlavorButtons() {
+      for (const button of els.flavorButtons) {
+        const flavor = Number(button.dataset.flavor);
+        button.classList.toggle("active", state.selectedFlavor === flavor);
+      }
+      els.submitOrder.disabled = !state.landmark || !state.selectedFlavor;
+    }
+
+    function isTerminalStatus(status) {
+      return status === "completed" || status === "canceled" || status === "failed";
+    }
+
+    function sortOrdersInPlace() {
+      state.orders.sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
+    }
+
+    function upsertOrder(order) {
+      const index = state.orders.findIndex((item) => item.order_id === order.order_id);
+      if (index >= 0) {
+        state.orders[index] = order;
+      } else {
+        state.orders.push(order);
+      }
+      sortOrdersInPlace();
+    }
+
+    function primaryOrder() {
+      return state.orders.find((order) => !isTerminalStatus(order.status)) || state.orders[0] || null;
+    }
+
+    function renderOrder() {
+      const order = primaryOrder();
+      els.orderLandmark.textContent = state.landmark ? `${state.landmark.id}. ${state.landmark.label}` : "--";
+      els.orderFlavor.textContent = order ? `Flavor ${order.flavor}` : state.selectedFlavor ? `Flavor ${state.selectedFlavor}` : "--";
+      els.orderStatus.textContent = order ? order.status : "--";
+      els.orderQueuePosition.textContent = order?.queue_position ?? "--";
+      els.orderStatusPill.textContent = order
+        ? `Order ${order.order_id}: ${order.status}`
+        : state.selectedFlavor
+          ? `Flavor ${state.selectedFlavor} selected`
+          : "Waiting for selection";
+
+      els.orderList.innerHTML = "";
+      if (!state.orders.length) {
+        const empty = document.createElement("div");
+        empty.className = "queue-item";
+        empty.textContent = "No orders submitted yet.";
+        els.orderList.appendChild(empty);
+        return;
+      }
+
+      for (const item of state.orders) {
+        const row = document.createElement("div");
+        row.className = "queue-item";
+        const queueText = item.queue_position == null ? "--" : String(item.queue_position);
+        row.textContent = `Order ${item.order_id} • Flavor ${item.flavor} • ${item.status} • Queue ${queueText}`;
+        els.orderList.appendChild(row);
+      }
+    }
+
+    function renderQueue() {
+      const queue = state.queue;
+      els.queueStatus.textContent = queue?.queue_status || "Idle";
+      els.dispenseStatus.textContent = queue?.currently_dispensing ? "TRUE" : "FALSE";
+      els.queueList.innerHTML = "";
+
+      const items = [];
+      if (queue?.active) items.push({ ...queue.active, role: "Active" });
+      for (const pending of queue?.pending || []) items.push({ ...pending, role: pending.label });
+
+      if (!items.length) {
+        const empty = document.createElement("div");
+        empty.className = "queue-item";
+        empty.textContent = "No queued delivery targets.";
+        els.queueList.appendChild(empty);
+        return;
+      }
+
+      for (const item of items) {
+        const row = document.createElement("div");
+        row.className = "queue-item";
+        const label = item.landmark_label
+          ? `${item.role}: ${item.landmark_label}`
+          : `${item.role}: ${item.x.toFixed(2)}, ${item.y.toFixed(2)}`;
+        row.textContent = label;
+        els.queueList.appendChild(row);
+      }
+    }
+
+    async function loadLandmark() {
+      state.landmarkId = pathLandmarkId();
+      state.landmark = await fetchJson(`/api/landmarks/${state.landmarkId}`);
+      els.landmarkName.textContent = `${state.landmark.id}. ${state.landmark.label}`;
+      renderOrder();
+      updateFlavorButtons();
+    }
+
+    async function refreshQueue() {
+      state.queue = await fetchJson("/api/queue");
+      renderQueue();
+    }
+
+    async function refreshOrders() {
+      if (!state.orders.length) return;
+      const refreshed = await Promise.all(
+        state.orders.map((order) => fetchJson(`/api/orders/${order.order_id}`))
+      );
+      state.orders = refreshed;
+      sortOrdersInPlace();
+      renderOrder();
+    }
+
+    async function pollState() {
+      try {
+        await Promise.all([refreshQueue(), refreshOrders()]);
+        setError("");
+      } catch (error) {
+        setError(error.message);
+      }
+    }
+
+    async function submitOrder() {
+      if (!state.landmark || !state.selectedFlavor) return;
+      els.submitOrder.disabled = true;
+      setError("");
+      try {
+        const data = await fetchJson("/api/orders", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            landmark_id: state.landmark.id,
+            flavor: state.selectedFlavor,
+          }),
+        });
+        upsertOrder(data.order);
+        renderOrder();
+        await pollState();
+      } catch (error) {
+        setError(error.message);
+      } finally {
+        updateFlavorButtons();
+      }
+    }
+
+    for (const button of els.flavorButtons) {
+      button.addEventListener("click", () => {
+        state.selectedFlavor = Number(button.dataset.flavor);
+        renderOrder();
+        updateFlavorButtons();
+      });
+    }
+
+    els.submitOrder.addEventListener("click", submitOrder);
+
+    loadLandmark()
+      .then(pollState)
+      .catch((error) => {
+        setError(error.message);
+        els.landmarkName.textContent = "unavailable";
+      });
+
+    state.pollHandle = window.setInterval(pollState, 2000);
+  </script>
+</body>
+</html>

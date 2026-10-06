@@ -1,0 +1,1735 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Glyph Robot Dashboard</title>
+  <style>
+    :root {
+      --bg: #f2eadf;
+      --panel: rgba(255, 250, 244, 0.92);
+      --panel-strong: #fffaf2;
+      --ink: #1e1d1a;
+      --muted: #6f6a61;
+      --accent: #0d8a72;
+      --accent-2: #ef8354;
+      --danger: #b5423c;
+      --line: rgba(30, 29, 26, 0.12);
+      --shadow: 0 20px 50px rgba(59, 46, 34, 0.14);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top left, rgba(13, 138, 114, 0.18), transparent 28%),
+        radial-gradient(circle at top right, rgba(239, 131, 84, 0.18), transparent 24%),
+        linear-gradient(180deg, #f7f1e8 0%, #efe4d6 100%);
+      min-height: 100vh;
+    }
+
+    .shell {
+      display: grid;
+      grid-template-columns: minmax(420px, 500px) minmax(0, 1fr);
+      gap: 9px;
+      padding: 9px;
+      height: 100vh;
+      min-height: 100vh;
+      align-items: stretch;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 17px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+    }
+
+    .sidebar {
+      display: grid;
+      gap: 7px;
+      align-content: start;
+      min-height: 0;
+      height: 100%;
+      grid-template-rows: auto auto auto auto minmax(0, 1fr);
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+
+    .section {
+      padding: 9px;
+    }
+
+    .compact-section {
+      padding: 7px;
+    }
+
+    .compact-section h2 {
+      margin-bottom: 5px;
+    }
+
+    .connection-section {
+      padding: 8px;
+    }
+
+    h1, h2, p { margin: 0; }
+
+    h1 {
+      font-size: 1.2rem;
+      font-family: "IBM Plex Mono", monospace;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+
+    h2 {
+      font-size: 0.67rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      margin-bottom: 7px;
+    }
+
+    .hero {
+      background: linear-gradient(135deg, rgba(13, 138, 114, 0.12), rgba(255, 250, 244, 0.92));
+    }
+
+    .hero p {
+      margin-top: 5px;
+      color: var(--muted);
+      line-height: 1.2;
+      font-size: 0.76rem;
+    }
+
+    .status-row,
+    .metric-grid {
+      display: grid;
+      gap: 6px;
+    }
+
+    .compact-section .status-row,
+    .compact-section .metric-grid {
+      gap: 5px;
+    }
+
+    .connection-section .status-row {
+      gap: 6px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .status-row {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .metric-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .telemetry-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .badge,
+    .metric,
+    .log {
+      background: var(--panel-strong);
+      border: 1px solid var(--line);
+      border-radius: 13px;
+    }
+
+    .badge {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 7px 9px;
+      font-size: 0.75rem;
+    }
+
+    .compact-section .badge {
+      padding: 6px 8px;
+      font-size: 0.72rem;
+    }
+
+    .connection-section .badge {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 9px;
+      font-size: 0.7rem;
+      min-width: 0;
+    }
+
+    .connection-section .badge span,
+    .connection-section .badge strong {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .connection-section .badge strong {
+      font-size: 0.8rem;
+      line-height: 1;
+    }
+
+    .metric {
+      padding: 7px 8px;
+    }
+
+    .compact-section .metric {
+      padding: 6px 7px;
+    }
+
+    .metric strong {
+      display: block;
+      font-size: 0.86rem;
+      margin-top: 2px;
+      font-family: "IBM Plex Mono", monospace;
+      white-space: nowrap;
+    }
+
+    .compact-section .metric strong {
+      font-size: 0.82rem;
+      margin-top: 1px;
+    }
+
+    .controls {
+      display: grid;
+      gap: 6px;
+    }
+
+    .button-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px;
+    }
+
+    .control-pair {
+      display: grid;
+      grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.9fr);
+      gap: 7px;
+      align-items: stretch;
+      grid-auto-rows: 1fr;
+    }
+
+    .control-pair > .panel {
+      height: 100%;
+    }
+
+    .control-card {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      min-height: 0;
+    }
+
+    .flavor-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 6px;
+    }
+
+    .mode-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 5px;
+    }
+
+    .compact-inline {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .compact-inline span {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.72rem;
+      color: var(--ink);
+    }
+
+    .compact-inline input {
+      min-width: 0;
+    }
+
+    .mode-button.active {
+      background: var(--accent);
+      color: white;
+      box-shadow: inset 0 0 0 2px rgba(255, 250, 244, 0.2);
+    }
+
+    .flavor-button.active {
+      box-shadow: inset 0 0 0 2px rgba(30, 29, 26, 0.18);
+      transform: translateY(-1px);
+    }
+
+    label {
+      display: grid;
+      gap: 3px;
+      font-size: 0.72rem;
+      color: var(--muted);
+      min-width: 0;
+    }
+
+    .inline-label {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      align-items: center;
+      gap: 6px;
+    }
+
+    .inline-label span {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.76rem;
+      color: var(--ink);
+    }
+
+    input {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 6px 7px;
+      min-height: 30px;
+      background: rgba(255, 255, 255, 0.8);
+      color: var(--ink);
+      font: inherit;
+      font-size: 0.8rem;
+      width: 100%;
+      min-width: 0;
+    }
+
+    .split {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 5px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 999px;
+      padding: 6px 9px;
+      font: inherit;
+      font-weight: 600;
+      font-size: 0.74rem;
+      cursor: pointer;
+      transition: transform 140ms ease, opacity 140ms ease;
+      min-width: 0;
+      white-space: normal;
+      line-height: 1.15;
+      text-align: center;
+    }
+
+    button:hover { transform: translateY(-1px); }
+    button:active { transform: translateY(0); }
+
+    .primary {
+      background: var(--accent);
+      color: white;
+    }
+
+    .secondary {
+      background: rgba(30, 29, 26, 0.08);
+      color: var(--ink);
+    }
+
+    .warning {
+      background: var(--accent-2);
+      color: white;
+    }
+
+    .map-panel {
+      padding: 9px;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      min-height: 0;
+      height: 100%;
+      width: 100%;
+    }
+
+    .map-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 7px;
+      padding: 2px 2px 7px;
+    }
+
+    .map-header p {
+      color: var(--muted);
+      font-size: 0.72rem;
+    }
+
+    .canvas-wrap {
+      position: relative;
+      border-radius: 17px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      background:
+        linear-gradient(0deg, rgba(30, 29, 26, 0.02), rgba(30, 29, 26, 0.02)),
+        linear-gradient(90deg, rgba(13, 138, 114, 0.05) 1px, transparent 1px),
+        linear-gradient(0deg, rgba(13, 138, 114, 0.05) 1px, transparent 1px),
+        #fffdf8;
+      background-size: auto, 28px 28px, 28px 28px, auto;
+      min-height: 0;
+      height: auto;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .overlay {
+      position: absolute;
+      left: 9px;
+      right: 9px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      max-width: calc(100% - 18px);
+    }
+
+    .overlay-top {
+      top: 9px;
+      align-items: flex-start;
+      justify-content: flex-start;
+    }
+
+    .overlay-bottom {
+      bottom: 9px;
+      align-items: flex-end;
+      justify-content: flex-start;
+    }
+
+    .chip {
+      background: rgba(255, 250, 244, 0.92);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 5px 8px;
+      font-size: 0.7rem;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .overlay-panel {
+      background: rgba(255, 250, 244, 0.94);
+      border: 1px solid var(--line);
+      border-radius: 26px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+      padding: 8px 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 6px;
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
+      overflow: hidden;
+    }
+
+    .overlay-panel .panel-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .overlay-panel .panel-row.header-row {
+      justify-content: center;
+      gap: 12px;
+    }
+
+    .overlay-panel .panel-row.metrics-row {
+      justify-content: center;
+    }
+
+    .overlay-panel h3 {
+      margin: 0;
+      font-size: 0.66rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      white-space: nowrap;
+      flex: 0 0 auto;
+      text-align: center;
+    }
+
+    .overlay-panel .metric-grid {
+      display: flex;
+      flex-wrap: nowrap;
+      gap: 4px;
+      min-width: 0;
+      align-items: center;
+      flex: 1 1 auto;
+      justify-content: space-between;
+    }
+
+    .overlay-panel .metric {
+      min-width: 170px;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      flex: 0 0 auto;
+      white-space: nowrap;
+      padding: 0 7px;
+      justify-content: space-between;
+    }
+
+    .overlay-panel .metric span,
+    .overlay-panel .metric strong {
+      text-align: center;
+    }
+
+    .overlay-panel button.secondary {
+      min-width: 88px;
+      padding-inline: 14px;
+      flex: 0 0 auto;
+      text-align: center;
+    }
+
+    .overlay-panel .metric strong {
+      white-space: nowrap;
+      line-height: 1.2;
+    }
+
+    .log {
+      padding: 8px;
+      height: 100%;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      white-space: pre-wrap;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.7rem;
+      line-height: 1.2;
+      color: #3d392f;
+    }
+
+    .activity-section {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      min-height: 72px;
+      height: 72px;
+      overflow: hidden;
+    }
+
+    .legend-inline {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      padding-top: 5px;
+      color: var(--muted);
+      font-size: 0.72rem;
+    }
+
+    .legend span::before {
+      content: "";
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+
+    .legend .robot::before { background: var(--accent); }
+    .legend .goal::before { background: var(--accent-2); }
+    .legend .queued::before { background: #f2c94c; }
+    .legend .landmark::before { background: #8fd694; }
+    .legend .person::before { background: var(--danger); }
+
+    @media (max-width: 980px) {
+      .shell {
+        grid-template-columns: 1fr;
+        height: auto;
+        min-height: 100vh;
+      }
+
+      .map-panel {
+        min-height: auto;
+      }
+
+      .control-pair {
+        grid-template-columns: 1fr;
+      }
+
+      .canvas-wrap {
+        min-height: 420px;
+        height: 420px;
+      }
+
+      .status-row {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <aside class="sidebar">
+      <section class="panel section hero">
+        <h1>Glyph Dashboard</h1>
+        <p>Live map, queued drink orders, UART dispenser state, and movement-gate monitoring.</p>
+      </section>
+
+      <section class="panel section compact-section connection-section">
+        <h2>Connection</h2>
+        <div class="status-row">
+          <div class="badge"><span>WebSocket</span><strong id="wsStatus">Connecting</strong></div>
+          <div class="badge"><span>ROS bridge</span><strong id="rosStatus">Unknown</strong></div>
+        </div>
+      </section>
+
+      <section class="panel section compact-section">
+        <h2>Telemetry</h2>
+        <div class="metric-grid telemetry-grid">
+          <div class="metric">Robot XY<strong id="robotXY">--</strong></div>
+          <div class="metric">Robot Yaw<strong id="robotYaw">--</strong></div>
+          <div class="metric">Next Goal<strong id="goalXY">--</strong></div>
+          <div class="metric">Map Size<strong id="mapMeta">--</strong></div>
+          <div class="metric">Queued Orders<strong id="queueCount">0</strong></div>
+          <div class="metric">Movement Gate<strong id="queueGate">CLOSED</strong></div>
+        </div>
+      </section>
+
+      <section class="panel section compact-section">
+        <h2>Map Modes</h2>
+        <div class="controls">
+          <div class="mode-grid">
+            <button class="secondary mode-button active" id="modeTarget">Set target</button>
+            <button class="secondary mode-button" id="modeLandmarks">Set landmarks</button>
+          </div>
+          <label class="compact-inline"><span>Delete</span>
+            <input id="deleteLandmarkId" type="number" min="1" step="1" placeholder="Landmark ID" />
+            <button class="warning" id="deleteLandmarkButton">Delete</button>
+          </label>
+        </div>
+      </section>
+
+      <div class="control-pair">
+        <section class="panel section compact-section control-card">
+          <h2>Queue Goal</h2>
+          <div class="controls">
+            <div class="split">
+              <label class="inline-label"><span>X</span>
+                <input id="x" type="number" value="0" step="0.1" />
+              </label>
+              <label class="inline-label"><span>Y</span>
+                <input id="y" type="number" value="0" step="0.1" />
+              </label>
+            </div>
+            <button class="primary" id="sendXY">Queue typed goal</button>
+            <div class="button-grid">
+              <button class="secondary" id="setHomeHere">Set current pose as home</button>
+              <button class="secondary" id="centerRobot">Center on robot</button>
+              <button class="primary" id="setGateLow">Sim dispensing FALSE</button>
+              <button class="warning" id="setGateHigh">Sim dispensing TRUE</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel section compact-section control-card">
+          <h2>Flavor Selection</h2>
+          <div class="controls">
+            <div class="metric">
+              Selection
+              <strong id="flavorBits">-</strong>
+            </div>
+            <div class="metric">
+              Topic
+              <strong id="flavorTopic">--</strong>
+            </div>
+            <div class="flavor-grid">
+              <button class="secondary flavor-button" id="flavor01">Flavor A</button>
+              <button class="secondary flavor-button" id="flavor10">Flavor B</button>
+              <button class="secondary flavor-button" id="flavor11">Flavor C</button>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <section class="panel section compact-section activity-section">
+        <h2>Activity</h2>
+        <div class="log" id="log"></div>
+      </section>
+
+    </aside>
+
+    <section class="panel map-panel">
+      <div class="map-header">
+        <div>
+          <h2>Live Map</h2>
+          <p>In set landmarks mode, click to place numbered landmarks. In set target mode, clicks behave normally but snap to a nearby landmark.</p>
+          <div class="legend legend-inline">
+            <span class="robot">Robot</span>
+            <span class="goal">Active</span>
+            <span class="queued">Queued</span>
+            <span class="landmark">Landmark</span>
+          </div>
+        </div>
+      </div>
+      <div class="canvas-wrap" id="canvasWrap">
+        <canvas id="mapCanvas"></canvas>
+        <div class="overlay overlay-top">
+          <div class="overlay-panel">
+            <div class="panel-row header-row">
+              <h3>Dispenser State</h3>
+              <button class="secondary" id="queryLevels">Query</button>
+            </div>
+            <div class="panel-row metrics-row">
+              <div class="metric-grid">
+                <div class="metric"><span>Water</span><strong id="levelWater">--</strong></div>
+                <div class="metric"><span>Flavor A</span><strong id="levelA">--</strong></div>
+                <div class="metric"><span>Flavor B</span><strong id="levelB">--</strong></div>
+                <div class="metric"><span>Flavor C</span><strong id="levelC">--</strong></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="overlay overlay-bottom">
+          <div class="chip" id="pointerReadout">Map XY: --</div>
+          <div class="chip" id="setHomeTopic">Set-home topic: --</div>
+          <div class="chip" id="returnHomeTopic">Movement gate topic: --</div>
+          <div class="chip" id="queueStatus">Queue: --</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // Central frontend state mirror of backend + UI-only state
+    const state = {
+      ws: null,
+      // mirrored backend config
+      config: {
+        frame_id: "odom",
+        home_target_topic: "/return_home_target_location",
+        movement_gate_topic: "/return_home_trigger",
+        set_home_topic: "/set_home_here",
+        flavor_selection_topic: "/flavor_selection",
+        currently_dispensing_topic: "/currently_dispensing",
+        dispense_empty_topic: "/dispense_empty",
+        dispense_uart_event_topic: "/dispense_uart_event",
+        dispense_uart_command_topic: "/dispense_uart_command"
+      },
+      // live ROS-derived data
+      map: null,
+      robotPose: null,
+      goalPose: null,
+      returnHomeGoalPose: null,
+      queueGoals: [],
+      queueLandmarks: [],
+      queueStatus: null,
+      movementGateOpen: false,
+      // dispenser state
+      currentlyDispensing: false,
+      dispenseEmpty: false,
+      dispenseLevels: null,
+      flavorSelection: 0,
+
+      landmarks: [],
+      
+      // UI interaction state
+      uiMode: "target",
+      scale: 28,
+      offsetX: 0,
+      offsetY: 0,
+      dragging: false,
+      dragStart: null,
+
+      mapImage: null,
+      pendingCenter: true,
+      lastPointerWorld: null,
+      lastPointerAtMs: 0,
+      lastPointerCanvas: null,
+      landmarkDrag: null,
+      suppressClickUntilMs: 0,
+    };
+
+    const els = {
+      wsStatus: document.getElementById("wsStatus"),
+      rosStatus: document.getElementById("rosStatus"),
+      robotXY: document.getElementById("robotXY"),
+      robotYaw: document.getElementById("robotYaw"),
+      goalXY: document.getElementById("goalXY"),
+      mapMeta: document.getElementById("mapMeta"),
+      queueCount: document.getElementById("queueCount"),
+      queueGate: document.getElementById("queueGate"),
+      x: document.getElementById("x"),
+      y: document.getElementById("y"),
+      log: document.getElementById("log"),
+      canvas: document.getElementById("mapCanvas"),
+      canvasWrap: document.getElementById("canvasWrap"),
+      pointerReadout: document.getElementById("pointerReadout"),
+      setHomeTopic: document.getElementById("setHomeTopic"),
+      returnHomeTopic: document.getElementById("returnHomeTopic"),
+      queueStatus: document.getElementById("queueStatus"),
+      flavorBits: document.getElementById("flavorBits"),
+      flavorTopic: document.getElementById("flavorTopic"),
+      flavor01: document.getElementById("flavor01"),
+      flavor10: document.getElementById("flavor10"),
+      flavor11: document.getElementById("flavor11"),
+      queryLevels: document.getElementById("queryLevels"),
+      levelWater: document.getElementById("levelWater"),
+      levelA: document.getElementById("levelA"),
+      levelB: document.getElementById("levelB"),
+      levelC: document.getElementById("levelC"),
+      modeTarget: document.getElementById("modeTarget"),
+      modeLandmarks: document.getElementById("modeLandmarks"),
+      deleteLandmarkId: document.getElementById("deleteLandmarkId"),
+      deleteLandmarkButton: document.getElementById("deleteLandmarkButton"),
+    };
+
+    const ctx = els.canvas.getContext("2d");
+    const ROBOT_FOOTPRINT_POINTS = [
+      { x: 0.36, y: 0.20 },
+      { x: 0.36, y: -0.20 },
+      { x: -0.45, y: -0.20 },
+      { x: -0.45, y: 0.20 },
+    ];
+    const GOAL_TOLERANCE_METERS = 0.5;
+
+    function getCanvasMetrics() {
+      const rect = els.canvasWrap.getBoundingClientRect();
+      return {
+        width: els.canvasWrap.clientWidth || rect.width,
+        height: els.canvasWrap.clientHeight || rect.height,
+      };
+    }
+
+    function getCanvasPointer(event) {
+      const rect = els.canvasWrap.getBoundingClientRect();
+      return {
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top,
+      };
+    }
+
+    function getViewCenterWorld() {
+      const { width, height } = getCanvasMetrics();
+      return canvasToPublishedWorld(width / 2, height / 2);
+    }
+
+    function updateCoordinateReadouts(cursorWorld) {
+      els.pointerReadout.textContent = `Map XY: ${cursorWorld.x.toFixed(2)}, ${cursorWorld.y.toFixed(2)}`;
+    }
+
+    function updatePointerReadoutFromCanvasPoint(px, py) {
+      state.lastPointerCanvas = { x: px, y: py };
+      const world = canvasToPublishedWorld(px, py);
+      state.lastPointerWorld = world;
+      state.lastPointerAtMs = performance.now();
+      updateCoordinateReadouts(world);
+      return world;
+    }
+
+    function log(message) {
+      const timestamp = new Date().toLocaleTimeString();
+      els.log.textContent += `${els.log.textContent ? "\n" : ""}[${timestamp}] ${message}`;
+      els.log.scrollTop = els.log.scrollHeight;
+    }
+
+    function setConnectionState(wsText, rosText) {
+      els.wsStatus.textContent = wsText;
+      els.rosStatus.textContent = rosText;
+    }
+
+    function resizeCanvas() {
+      const { width, height } = getCanvasMetrics();
+      const dpr = window.devicePixelRatio || 1;
+      const targetWidth = Math.max(1, Math.floor(width * dpr));
+      const targetHeight = Math.max(1, Math.floor(height * dpr));
+      if (els.canvas.width === targetWidth && els.canvas.height === targetHeight) {
+        draw();
+        return;
+      }
+      els.canvas.width = targetWidth;
+      els.canvas.height = targetHeight;
+      ctx.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0);
+      draw();
+    }
+
+    function updateStats() {
+      const robot = state.robotPose;
+      const goal = state.goalPose;
+      const returnHomeGoal = state.returnHomeGoalPose;
+      const map = state.map;
+      els.robotXY.textContent = robot ? `${robot.x.toFixed(2)}, ${robot.y.toFixed(2)}` : "--";
+      els.robotYaw.textContent = robot ? `${robot.yaw.toFixed(2)} rad` : "--";
+      els.goalXY.textContent = goal
+        ? `${goal.x.toFixed(2)}, ${goal.y.toFixed(2)}`
+        : returnHomeGoal
+          ? `${returnHomeGoal.x.toFixed(2)}, ${returnHomeGoal.y.toFixed(2)} (home)`
+          : "--";
+      els.mapMeta.textContent = map ? `${map.width}x${map.height}` : "--";
+      els.queueCount.textContent = `${state.queueGoals.length}`;
+      els.queueGate.textContent = state.movementGateOpen ? "OPEN" : "CLOSED";
+      els.queueStatus.textContent = `Queue: ${state.queueStatus || "Idle"}`;
+      els.modeTarget.classList.toggle("active", state.uiMode === "target");
+      els.modeLandmarks.classList.toggle("active", state.uiMode === "landmark");
+      els.flavorBits.textContent = flavorSelectionToUart(state.flavorSelection);
+      [
+        [els.flavor01, 1],
+        [els.flavor10, 2],
+        [els.flavor11, 3],
+      ].forEach(([button, value]) => {
+        button.classList.toggle("active", state.flavorSelection === value);
+      });
+      const levels = state.dispenseLevels;
+      const renderLevel = (entry) =>
+        entry ? `${entry.current_ml.toFixed(0)}/${entry.total_ml.toFixed(0)} mL (${entry.percent.toFixed(0)}%)` : "--";
+      els.levelWater.textContent = renderLevel(levels?.water);
+      els.levelA.textContent = renderLevel(levels?.flavor_a);
+      els.levelB.textContent = renderLevel(levels?.flavor_b);
+      els.levelC.textContent = renderLevel(levels?.flavor_c);
+    }
+
+    function updateConfig(config) {
+      if (!config) return;
+      state.config = config;
+      els.setHomeTopic.textContent = `Set-home topic: ${config.set_home_topic || "/set_home_here"}`;
+      els.returnHomeTopic.textContent = `Movement gate topic: ${config.movement_gate_topic || config.return_home_topic || "/return_home_trigger"}`;
+      els.flavorTopic.textContent = config.flavor_selection_topic || "/flavor_selection";
+    }
+
+    function applyMessage(message) {
+      // Applies partial updates from backend to frontend state
+      // Main state reducer for the UI
+
+      // Handles:
+      //   - map updates
+      //   - robot pose
+      //   - queue state
+      //   - dispenser state
+      //   - landmarks
+
+      if (message.config) updateConfig(message.config);
+      if (message.map) {
+        state.map = message.map;
+        buildMapImage();
+      }
+      if (message.robot_pose) {
+        state.robotPose = message.robot_pose;
+      }
+      if (message.goal_pose) {
+        state.goalPose = message.goal_pose;
+        els.x.value = message.goal_pose.x.toFixed(2);
+        els.y.value = message.goal_pose.y.toFixed(2);
+      } else if (Object.prototype.hasOwnProperty.call(message, "goal_pose")) {
+        state.goalPose = null;
+      }
+      if (message.return_home_goal_pose) {
+        state.returnHomeGoalPose = message.return_home_goal_pose;
+      } else if (Object.prototype.hasOwnProperty.call(message, "return_home_goal_pose")) {
+        state.returnHomeGoalPose = null;
+      }
+      if (message.queue_goals) {
+        state.queueGoals = message.queue_goals;
+      } else if (Object.prototype.hasOwnProperty.call(message, "queue_goals")) {
+        state.queueGoals = [];
+      }
+      if (Array.isArray(message.queue_landmarks)) {
+        state.queueLandmarks = message.queue_landmarks;
+      } else if (Object.prototype.hasOwnProperty.call(message, "queue_landmarks")) {
+        state.queueLandmarks = [];
+      }
+      if (Object.prototype.hasOwnProperty.call(message, "queue_status")) {
+        state.queueStatus = message.queue_status;
+      }
+      if (Object.prototype.hasOwnProperty.call(message, "movement_gate_open")) {
+        state.movementGateOpen = !!message.movement_gate_open;
+      }
+      if (Object.prototype.hasOwnProperty.call(message, "return_home_signal")) {
+        state.movementGateOpen = !!message.return_home_signal;
+      }
+      if (Object.prototype.hasOwnProperty.call(message, "currently_dispensing")) {
+        state.currentlyDispensing = !!message.currently_dispensing;
+      }
+      if (Object.prototype.hasOwnProperty.call(message, "dispense_empty")) {
+        state.dispenseEmpty = !!message.dispense_empty;
+      }
+      if (Object.prototype.hasOwnProperty.call(message, "dispense_levels")) {
+        state.dispenseLevels = message.dispense_levels;
+      }
+      if (Object.prototype.hasOwnProperty.call(message, "flavor_selection")) {
+        state.flavorSelection = message.flavor_selection;
+      }
+      if (Array.isArray(message.landmarks)) {
+        state.landmarks = [...message.landmarks].sort((a, b) => a.id - b.id);
+      }
+      updateStats();
+      draw();
+      if (state.pendingCenter && (state.robotPose || state.goalPose || state.map)) {
+        centerView();
+        state.pendingCenter = false;
+      }
+    }
+
+    function flavorSelectionToUart(selection) {
+      return ({ 1: "A", 2: "B", 3: "C" })[selection] || "?";
+    }
+
+    function connect() {
+      // Opens websocket to FastAPI backend
+      // Handles:
+      //   - initial state sync
+      //   - live updates
+      //   - reconnection
+
+      const url = location.protocol === "https:"
+        ? `wss://${location.host}/ws`
+        : `ws://${location.host}/ws`;
+      state.ws = new WebSocket(url);
+      setConnectionState("Connecting", "Waiting");
+
+      state.ws.onopen = () => {
+        setConnectionState("Online", "Connected");
+        log("WebSocket connected");
+        state.ws.send(JSON.stringify({ type: "get_state" }));
+      };
+
+      state.ws.onmessage = (event) => {
+        let message = JSON.parse(event.data);
+        if (message.type === "error") {
+          log(`Error: ${message.error}${message.detail ? ` (${message.detail})` : ""}`);
+          return;
+        }
+        if (message.type === "hello") {
+          message = { ...message, goal_pose: null };
+        }
+        if (message.type === "ack") {
+          if (message.source === "gate_state") {
+            log(`Published movement_gate ${message.state ? "open" : "closed"}`);
+          } else if (message.source === "currently_dispensing") {
+            log(`Sim currently_dispensing ${message.state ? "true" : "false"}`);
+          } else if (message.source === "set_home") {
+            log("Published set-home command");
+          } else if (message.source === "flavor_selection") {
+            log(`Published UART ${flavorSelectionToUart(message.selection)}`);
+          } else if (message.source === "dispense_query") {
+            log("Published UART ?");
+          } else if (message.source === "cancel_xy") {
+            log(`Removed queued goal near ${message.cancel_pose.x.toFixed(2)}, ${message.cancel_pose.y.toFixed(2)}`);
+          } else if (message.goal_pose) {
+            log(`Queued ${message.source} goal at ${message.goal_pose.x.toFixed(2)}, ${message.goal_pose.y.toFixed(2)}`);
+          }
+        }
+        if (message.type === "uart_event" && message.uart_event) {
+          log(`Received UART ${message.uart_event}`);
+        }
+        if (message.type === "activity_log" && message.message) {
+          log(message.message);
+        }
+        if (message.type === "dispense_empty" && message.dispense_empty) {
+          log("Dispenser marked empty; movement gate closed and new orders disabled");
+        }
+        applyMessage(message);
+      };
+
+      state.ws.onclose = () => {
+        setConnectionState("Offline", "Disconnected");
+        log("WebSocket closed; retrying in 2s");
+        window.setTimeout(connect, 2000);
+      };
+    }
+
+    function send(payload) {
+      if (!state.ws || state.ws.readyState !== WebSocket.OPEN) {
+        log("WebSocket is not open");
+        return;
+      }
+      state.ws.send(JSON.stringify(payload));
+    }
+
+    function currentGoalFrame() {
+      return state.map?.frame_id || state.robotPose?.frame_id || state.config.frame_id || "map";
+    }
+
+    function sendXYGoal(x, y) {
+      send({
+        type: "xy",
+        x,
+        y,
+        frame_id: currentGoalFrame(),
+      });
+    }
+
+    function sendCancelXY(x, y) {
+      send({
+        type: "cancel_xy",
+        x,
+        y,
+        frame_id: currentGoalFrame(),
+      });
+    }
+
+    function sendTypedGoal() {
+      const x = parseFloat(els.x.value);
+      const y = parseFloat(els.y.value);
+      sendXYGoal(x, y);
+    }
+
+    function sendGateState(isDispensing) {
+      send({ type: "currently_dispensing", state: isDispensing });
+      send({ type: "gate_state", state: !isDispensing });
+    }
+
+    function sendSetHomeHere() {
+      send({ type: "set_home" });
+    }
+
+    function sendFlavorSelection(selection) {
+      send({ type: "flavor_selection", selection });
+    }
+
+    function queryDispenseLevels() {
+      send({ type: "dispense_query" });
+    }
+
+    async function fetchJson(url, options = {}) {
+      const response = await fetch(url, options);
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.detail || data.error || `Request failed with status ${response.status}`);
+      }
+      return data;
+    }
+
+    async function refreshLandmarks() {
+      const data = await fetchJson("/api/landmarks");
+      state.landmarks = [...(data.landmarks || [])].sort((a, b) => a.id - b.id);
+      updateStats();
+      draw();
+    }
+
+    async function saveLandmark(payload) {
+      const landmark = await fetchJson("/api/landmarks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      state.landmarks = state.landmarks
+        .filter((item) => item.id !== landmark.id)
+        .concat([landmark])
+        .sort((a, b) => a.id - b.id);
+      updateStats();
+      draw();
+      return landmark;
+    }
+
+    async function deleteLandmark(landmarkId) {
+      const data = await fetchJson(`/api/landmarks/${landmarkId}`, { method: "DELETE" });
+      state.landmarks = [...(data.landmarks || [])].sort((a, b) => a.id - b.id);
+      updateStats();
+      draw();
+      log(`Deleted landmark ${landmarkId}; remaining landmarks were renumbered`);
+    }
+
+    async function deleteLandmarkFromInput() {
+      const landmarkId = parseInt(els.deleteLandmarkId.value, 10);
+      if (!Number.isFinite(landmarkId) || landmarkId < 1) {
+        log("Enter a valid landmark ID to delete");
+        return;
+      }
+      try {
+        await deleteLandmark(landmarkId);
+        els.deleteLandmarkId.value = "";
+      } catch (error) {
+        log(`Landmark delete failed: ${error.message}`);
+      }
+    }
+
+    function findLandmarkNear(world, radiusMeters = 0.45) {
+      let best = null;
+      let bestDistanceSq = radiusMeters * radiusMeters;
+      for (const landmark of state.landmarks || []) {
+        const dx = landmark.x - world.x;
+        const dy = landmark.y - world.y;
+        const distanceSq = dx * dx + dy * dy;
+        if (distanceSq <= bestDistanceSq) {
+          best = landmark;
+          bestDistanceSq = distanceSq;
+        }
+      }
+      return best;
+    }
+
+    function updateLandmarkLocal(landmarkId, x, y) {
+      state.landmarks = state.landmarks.map((item) =>
+        item.id === landmarkId ? { ...item, x, y } : item
+      );
+      updateStats();
+      draw();
+    }
+
+    function buildMapImage() {
+      if (!state.map) return;
+      const { width, height, data } = state.map;
+      const offscreen = document.createElement("canvas");
+      offscreen.width = width;
+      offscreen.height = height;
+      const offctx = offscreen.getContext("2d");
+      const imageData = offctx.createImageData(width, height);
+      for (let i = 0; i < data.length; i += 1) {
+        const value = data[i];
+        const idx = i * 4;
+        let color = 255;
+        if (value === -1) color = 226;
+        else color = 255 - Math.round((value / 100) * 255);
+        imageData.data[idx] = color;
+        imageData.data[idx + 1] = color;
+        imageData.data[idx + 2] = color;
+        imageData.data[idx + 3] = 255;
+      }
+      offctx.putImageData(imageData, 0, 0);
+      state.mapImage = offscreen;
+    }
+
+    function worldToCanvas(x, y) {
+      const { height } = getCanvasMetrics();
+      return {
+        x: state.offsetX + x * state.scale,
+        y: (height - state.offsetY) - y * state.scale,
+      };
+    }
+
+    function canvasToWorld(px, py) {
+      const { height } = getCanvasMetrics();
+      return {
+        x: (px - state.offsetX) / state.scale,
+        y: ((height - state.offsetY) - py) / state.scale,
+      };
+    }
+
+    function getMapImageTransform() {
+      if (!state.map) return null;
+      const yaw = state.map.origin.yaw || 0;
+      const mapWidthMeters = state.map.width * state.map.resolution;
+      const mapHeightMeters = state.map.height * state.map.resolution;
+
+      const origin = worldToCanvas(state.map.origin.x, state.map.origin.y);
+      const xAxisEnd = worldToCanvas(
+        state.map.origin.x + mapWidthMeters * Math.cos(yaw),
+        state.map.origin.y + mapWidthMeters * Math.sin(yaw),
+      );
+      const yAxisEnd = worldToCanvas(
+        state.map.origin.x - mapHeightMeters * Math.sin(yaw),
+        state.map.origin.y + mapHeightMeters * Math.cos(yaw),
+      );
+
+      return {
+        a: (xAxisEnd.x - origin.x) / state.map.width,
+        b: (xAxisEnd.y - origin.y) / state.map.width,
+        c: (yAxisEnd.x - origin.x) / state.map.height,
+        d: (yAxisEnd.y - origin.y) / state.map.height,
+        e: origin.x,
+        f: origin.y,
+      };
+    }
+
+    function canvasToPublishedWorld(px, py) {
+      // Converts screen coordinates → map/world coordinates
+      // Takes into account:
+      //   - map origin
+      //   - map resolution
+      //   - map rotation (yaw)
+      const tx = getMapImageTransform();
+      if (!state.map || !tx) return canvasToWorld(px, py);
+
+      const det = tx.a * tx.d - tx.b * tx.c;
+      if (Math.abs(det) < 1e-9) return canvasToWorld(px, py);
+
+      const dx = px - tx.e;
+      const dy = py - tx.f;
+      const imageX = (tx.d * dx - tx.c * dy) / det;
+      const imageY = (-tx.b * dx + tx.a * dy) / det;
+      const localX = imageX * state.map.resolution;
+      const localY = imageY * state.map.resolution;
+      const yaw = state.map.origin.yaw || 0;
+
+      return {
+        x: state.map.origin.x + localX * Math.cos(yaw) - localY * Math.sin(yaw),
+        y: state.map.origin.y + localX * Math.sin(yaw) + localY * Math.cos(yaw),
+      };
+    }
+
+    function rotatePoint(x, y, yaw) {
+      const c = Math.cos(yaw);
+      const s = Math.sin(yaw);
+      return {
+        x: x * c - y * s,
+        y: x * s + y * c,
+      };
+    }
+
+    function getMapCenterWorld() {
+      if (!state.map) return null;
+      const halfWidth = (state.map.width * state.map.resolution) / 2;
+      const halfHeight = (state.map.height * state.map.resolution) / 2;
+      const rotated = rotatePoint(halfWidth, halfHeight, state.map.origin.yaw || 0);
+      return {
+        x: state.map.origin.x + rotated.x,
+        y: state.map.origin.y + rotated.y,
+      };
+    }
+
+    function centerView() {
+      const focus = state.robotPose || state.goalPose || state.returnHomeGoalPose;
+      const { width, height } = getCanvasMetrics();
+      if (focus) {
+        state.offsetX = width / 2 - focus.x * state.scale;
+        state.offsetY = height / 2 - focus.y * state.scale;
+      } else if (state.map) {
+        const center = getMapCenterWorld();
+        state.offsetX = width / 2 - center.x * state.scale;
+        state.offsetY = height / 2 - center.y * state.scale;
+      }
+      draw();
+    }
+
+    function metersToPixels(distanceMeters) {
+      return distanceMeters * state.scale;
+    }
+
+    function drawArrow(x, y, yaw, color, size = 16) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(-yaw);
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.moveTo(size, 0);
+      ctx.lineTo(-size * 0.65, size * 0.5);
+      ctx.lineTo(-size * 0.65, -size * 0.5);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawToleranceRing(x, y, radiusMeters, color) {
+      const radiusPx = metersToPixels(radiusMeters);
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(x, y, radiusPx, 0, Math.PI * 2);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = Math.max(1.5, Math.min(3, state.scale * 0.04));
+      ctx.setLineDash([Math.max(4, radiusPx * 0.08), Math.max(4, radiusPx * 0.05)]);
+      ctx.globalAlpha = 0.75;
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawCircleMarker(x, y, color, radius = 8, withBorder = true) {
+      ctx.save();
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.fill();
+      if (withBorder) {
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "rgba(255, 250, 244, 0.95)";
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    function drawRobotFootprint(pose, color) {
+      const corners = ROBOT_FOOTPRINT_POINTS.map((point) => {
+        const rotated = rotatePoint(point.x, point.y, pose.yaw || 0);
+        return worldToCanvas(pose.x + rotated.x, pose.y + rotated.y);
+      });
+
+      ctx.save();
+      ctx.beginPath();
+      corners.forEach((corner, index) => {
+        if (index === 0) ctx.moveTo(corner.x, corner.y);
+        else ctx.lineTo(corner.x, corner.y);
+      });
+      ctx.closePath();
+      ctx.fillStyle = "rgba(13, 138, 114, 0.20)";
+      ctx.fill();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = Math.max(1.5, Math.min(3, state.scale * 0.05));
+      ctx.stroke();
+      ctx.restore();
+
+      const center = worldToCanvas(pose.x, pose.y);
+      drawArrow(
+        center.x,
+        center.y,
+        pose.yaw,
+        color,
+        Math.max(8, metersToPixels(0.22)),
+      );
+    }
+
+    function drawBadge(x, y, lines) {
+      ctx.save();
+      ctx.font = '12px "IBM Plex Mono", monospace';
+      const paddingX = 8;
+      const lineHeight = 14;
+      const textLines = lines.filter(Boolean);
+      const height = Math.max(20, textLines.length * lineHeight + 8);
+      const width = textLines.length
+        ? Math.max(...textLines.map((line) => Math.ceil(ctx.measureText(line).width))) + paddingX * 2
+        : 24;
+      const radius = 10;
+      const left = x;
+      const top = y - height / 2;
+
+      ctx.fillStyle = "rgba(255, 250, 244, 0.96)";
+      ctx.strokeStyle = "rgba(30, 29, 26, 0.16)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(left + radius, top);
+      ctx.lineTo(left + width - radius, top);
+      ctx.quadraticCurveTo(left + width, top, left + width, top + radius);
+      ctx.lineTo(left + width, top + height - radius);
+      ctx.quadraticCurveTo(left + width, top + height, left + width - radius, top + height);
+      ctx.lineTo(left + radius, top + height);
+      ctx.quadraticCurveTo(left, top + height, left, top + height - radius);
+      ctx.lineTo(left, top + radius);
+      ctx.quadraticCurveTo(left, top, left + radius, top);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = "#1e1d1a";
+      ctx.textBaseline = "middle";
+      textLines.forEach((line, index) => {
+        const lineY = top + 4 + lineHeight / 2 + index * lineHeight;
+        ctx.fillText(line, left + paddingX, lineY);
+      });
+      ctx.restore();
+    }
+
+    function buildLandmarkBadgeLines(landmark) {
+      const queueEntries = (state.queueLandmarks || [])
+        .filter((item) => item.landmark_id === landmark.id)
+        .sort((a, b) => (a.queue_position ?? 999) - (b.queue_position ?? 999));
+
+      const queuedLabels = queueEntries
+        .filter((item) => item.label !== "ACTIVE")
+        .map((item) => item.label);
+      const lines = [];
+      if (queueEntries.some((item) => item.label === "ACTIVE")) {
+        lines.push("ACTIVE");
+      }
+      if (queuedLabels.length) {
+        lines.push(queuedLabels.join(" • "));
+      }
+      return lines;
+    }
+
+    function landmarkMarkerColor(landmark) {
+      const queueEntries = (state.queueLandmarks || [])
+        .filter((item) => item.landmark_id === landmark.id);
+      if (queueEntries.some((item) => item.label === "ACTIVE")) {
+        return "#ef8354";
+      }
+      if (queueEntries.length) {
+        return "#f2c94c";
+      }
+      return "#8fd694";
+    }
+
+    function drawMap() {
+      if (!state.map || !state.mapImage) return;
+      const dpr = window.devicePixelRatio || 1;
+      const tx = getMapImageTransform();
+      if (!tx) return;
+
+      ctx.save();
+      ctx.setTransform(
+        dpr * tx.a,
+        dpr * tx.b,
+        dpr * tx.c,
+        dpr * tx.d,
+        dpr * tx.e,
+        dpr * tx.f,
+      );
+      ctx.drawImage(state.mapImage, 0, 0, state.map.width, state.map.height);
+      ctx.restore();
+    }
+
+    function drawMarkers() {
+      for (const landmark of state.landmarks || []) {
+        const p = worldToCanvas(landmark.x, landmark.y);
+        drawCircleMarker(p.x, p.y, landmarkMarkerColor(landmark), Math.max(5, metersToPixels(0.10)));
+        ctx.save();
+        ctx.fillStyle = "#fffdf8";
+        ctx.font = '12px "IBM Plex Mono", monospace';
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(String(landmark.id), p.x, p.y + 0.5);
+        ctx.restore();
+        const badgeLines = buildLandmarkBadgeLines(landmark);
+        if (badgeLines.length) {
+          drawBadge(p.x + 12, p.y - 14, badgeLines);
+        }
+      }
+      const hasQueueMarkers = state.queueGoals && state.queueGoals.length > 0;
+      if (state.goalPose && !hasQueueMarkers) {
+        const p = worldToCanvas(state.goalPose.x, state.goalPose.y);
+        drawToleranceRing(p.x, p.y, GOAL_TOLERANCE_METERS, "rgba(239, 131, 84, 0.9)");
+        drawCircleMarker(p.x, p.y, "#ef8354", Math.max(5, metersToPixels(0.10)));
+      }
+      for (const queuedGoal of state.queueGoals) {
+        const overlapsLandmark = findLandmarkNear(
+          { x: queuedGoal.x, y: queuedGoal.y },
+          0.6
+        );
+        if (overlapsLandmark) {
+          continue;
+        }
+        const p = worldToCanvas(queuedGoal.x, queuedGoal.y);
+        const isActive = queuedGoal.label === "ACTIVE";
+        drawToleranceRing(
+          p.x,
+          p.y,
+          GOAL_TOLERANCE_METERS,
+          isActive ? "rgba(239, 131, 84, 0.9)" : "rgba(242, 201, 76, 0.85)",
+        );
+        drawCircleMarker(
+          p.x,
+          p.y,
+          isActive ? "#ef8354" : "#f2c94c",
+          Math.max(4, metersToPixels(0.09)),
+          false,
+        );
+        drawBadge(p.x + 12, p.y - 14, [queuedGoal.label]);
+      }
+      if (state.returnHomeGoalPose) {
+        const p = worldToCanvas(state.returnHomeGoalPose.x, state.returnHomeGoalPose.y);
+        drawToleranceRing(p.x, p.y, GOAL_TOLERANCE_METERS, "rgba(13, 138, 114, 0.65)");
+        drawCircleMarker(p.x, p.y, "#0d8a72", Math.max(5, metersToPixels(0.10)));
+      }
+      if (state.robotPose) {
+        drawRobotFootprint(state.robotPose, "#0d8a72");
+      }
+    }
+
+    function findQueuedGoalNear(world, radiusMeters = 0.45) {
+      let best = null;
+      let bestDistanceSq = radiusMeters * radiusMeters;
+      for (const queuedGoal of state.queueGoals || []) {
+        if (queuedGoal.label === "ACTIVE") continue;
+        const dx = queuedGoal.x - world.x;
+        const dy = queuedGoal.y - world.y;
+        const distanceSq = dx * dx + dy * dy;
+        if (distanceSq <= bestDistanceSq) {
+          best = queuedGoal;
+          bestDistanceSq = distanceSq;
+        }
+      }
+      return best;
+    }
+
+    function draw() {
+      const { width, height } = getCanvasMetrics();
+      ctx.clearRect(0, 0, width, height);
+
+      ctx.strokeStyle = "rgba(30, 29, 26, 0.07)";
+      ctx.lineWidth = 1;
+      for (let x = 0; x < width; x += 56) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, height);
+        ctx.stroke();
+      }
+      for (let y = 0; y < height; y += 56) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+        ctx.lineTo(width, y);
+        ctx.stroke();
+      }
+
+      drawMap();
+      drawMarkers();
+
+      if (state.lastPointerCanvas) {
+        const { x, y } = state.lastPointerCanvas;
+        const world = canvasToPublishedWorld(x, y);
+        state.lastPointerWorld = world;
+        state.lastPointerAtMs = performance.now();
+        updateCoordinateReadouts(world);
+      }
+    }
+
+    els.canvas.addEventListener("mousemove", (event) => {
+      // Main interaction:
+      // - In landmark mode: create/move landmarks
+      // - In target mode:
+      //     - cancel queued goal if clicked near one
+      //     - snap to landmark if close
+      //     - otherwise send raw goal
+    
+      const pointer = getCanvasPointer(event);
+      const world = updatePointerReadoutFromCanvasPoint(pointer.x, pointer.y);
+      if (state.landmarkDrag) {
+        updateLandmarkLocal(state.landmarkDrag.id, world.x, world.y);
+        return;
+      }
+      if (state.dragging) {
+        state.offsetX = state.dragStart.offsetX + (event.clientX - state.dragStart.x);
+        state.offsetY = state.dragStart.offsetY - (event.clientY - state.dragStart.y);
+        draw();
+      }
+    });
+
+    els.canvas.addEventListener("mousedown", (event) => {
+      if (event.shiftKey || event.button === 1) {
+        state.dragging = true;
+        state.dragStart = {
+          x: event.clientX,
+          y: event.clientY,
+          offsetX: state.offsetX,
+          offsetY: state.offsetY,
+        };
+        return;
+      }
+
+      if (state.uiMode === "landmark" && event.button === 0) {
+        const pointer = getCanvasPointer(event);
+        const world = canvasToPublishedWorld(pointer.x, pointer.y);
+        const existingLandmark = findLandmarkNear(world);
+        if (existingLandmark) {
+          state.landmarkDrag = {
+            id: existingLandmark.id,
+            moved: false,
+          };
+          event.preventDefault();
+          draw();
+          return;
+        }
+      }
+    });
+
+    window.addEventListener("mouseup", () => {
+      if (state.landmarkDrag) {
+        const dragged = state.landmarkDrag;
+        const landmark = state.landmarks.find((item) => item.id === dragged.id);
+        state.landmarkDrag = null;
+        if (landmark) {
+          saveLandmark({
+            id: landmark.id,
+            label: landmark.label,
+            x: landmark.x,
+            y: landmark.y,
+            yaw: landmark.yaw || 0,
+            enabled: landmark.enabled !== false
+          })
+            .then((savedLandmark) => {
+              log(`Moved landmark ${savedLandmark.id} to ${savedLandmark.x.toFixed(2)}, ${savedLandmark.y.toFixed(2)}`);
+            })
+            .catch((error) => log(`Landmark move failed: ${error.message}`));
+          state.suppressClickUntilMs = performance.now() + 250;
+        }
+      }
+      state.dragging = false;
+    });
+
+    els.canvas.addEventListener("click", (event) => {
+      if (performance.now() < state.suppressClickUntilMs) return;
+      if (state.dragging || event.shiftKey) return;
+      const pointer = getCanvasPointer(event);
+      const livePointerIsFresh = performance.now() - state.lastPointerAtMs < 200;
+      const world = livePointerIsFresh && state.lastPointerWorld
+        ? state.lastPointerWorld
+        : canvasToPublishedWorld(pointer.x, pointer.y);
+      els.x.value = world.x.toFixed(2);
+      els.y.value = world.y.toFixed(2);
+      if (state.uiMode === "landmark") {
+        const existingLandmark = findLandmarkNear(world);
+        const lastLandmark = state.landmarks.length ? state.landmarks[state.landmarks.length - 1] : null;
+        const nextId = existingLandmark ? existingLandmark.id : ((lastLandmark?.id || 0) + 1);
+        saveLandmark({
+          id: nextId,
+          label: `Landmark ${nextId}`,
+          x: world.x,
+          y: world.y,
+          yaw: 0.0,
+          enabled: true
+        })
+          .then((landmark) => {
+            log(
+              `${existingLandmark ? "Updated" : "Saved"} landmark ${landmark.id} at ${landmark.x.toFixed(2)}, ${landmark.y.toFixed(2)}`
+            );
+          })
+          .catch((error) => log(`Landmark save failed: ${error.message}`));
+        return;
+      }
+      const existingQueuedGoal = findQueuedGoalNear(world);
+      if (existingQueuedGoal) {
+        sendCancelXY(existingQueuedGoal.x, existingQueuedGoal.y);
+        log(`Removing queued goal ${existingQueuedGoal.label} at ${existingQueuedGoal.x.toFixed(2)}, ${existingQueuedGoal.y.toFixed(2)}`);
+        return;
+      }
+      const snappedLandmark = findLandmarkNear(world);
+      if (snappedLandmark) {
+        els.x.value = snappedLandmark.x.toFixed(2);
+        els.y.value = snappedLandmark.y.toFixed(2);
+        sendXYGoal(snappedLandmark.x, snappedLandmark.y);
+        log(`Queued landmark ${snappedLandmark.id} from click near ${world.x.toFixed(2)}, ${world.y.toFixed(2)}`);
+        return;
+      }
+      sendXYGoal(world.x, world.y);
+      log(`Queued clicked goal at ${world.x.toFixed(2)}, ${world.y.toFixed(2)}`);
+    });
+
+    els.canvasWrap.addEventListener("wheel", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const { height } = getCanvasMetrics();
+      const pointer = getCanvasPointer(event);
+      const mouseX = pointer.x;
+      const mouseY = pointer.y;
+      state.lastPointerCanvas = { x: mouseX, y: mouseY };
+      const before = canvasToPublishedWorld(mouseX, mouseY);
+      const factor = event.deltaY < 0 ? 1.08 : 0.92;
+      state.scale = Math.min(120, Math.max(1, state.scale * factor));
+      state.offsetX = mouseX - before.x * state.scale;
+      state.offsetY = (height - mouseY) - before.y * state.scale;
+      updatePointerReadoutFromCanvasPoint(mouseX, mouseY);
+      draw();
+    }, { passive: false });
+
+    document.getElementById("sendXY").addEventListener("click", sendTypedGoal);
+    document.getElementById("setHomeHere").addEventListener("click", sendSetHomeHere);
+    document.getElementById("setGateLow").addEventListener("click", () => sendGateState(false));
+    document.getElementById("setGateHigh").addEventListener("click", () => sendGateState(true));
+    document.getElementById("centerRobot").addEventListener("click", centerView);
+    document.getElementById("flavor01").addEventListener("click", () => sendFlavorSelection(1));
+    document.getElementById("flavor10").addEventListener("click", () => sendFlavorSelection(2));
+    document.getElementById("flavor11").addEventListener("click", () => sendFlavorSelection(3));
+    document.getElementById("queryLevels").addEventListener("click", queryDispenseLevels);
+    document.getElementById("modeTarget").addEventListener("click", () => {
+      state.uiMode = "target";
+      updateStats();
+    });
+    document.getElementById("modeLandmarks").addEventListener("click", () => {
+      state.uiMode = "landmark";
+      updateStats();
+    });
+    document.getElementById("deleteLandmarkButton").addEventListener("click", deleteLandmarkFromInput);
+    document.getElementById("deleteLandmarkId").addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        deleteLandmarkFromInput();
+      }
+    });
+    window.addEventListener("resize", resizeCanvas);
+
+    if (typeof ResizeObserver !== "undefined") {
+      new ResizeObserver(() => resizeCanvas()).observe(els.canvasWrap);
+    }
+
+    resizeCanvas();
+    refreshLandmarks().catch((error) => log(`Failed to load landmarks: ${error.message}`));
+    connect();
+  </script>
+</body>
+</html>
