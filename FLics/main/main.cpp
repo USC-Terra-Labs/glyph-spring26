@@ -2,7 +2,7 @@
  * FLics: FLuid and Lights Integrated Control System
  *
  * - LED matrix shows a sloshing fluid at a fixed fill level (FILL_LEVEL),
- *   driven by the BNO055 accelerometer. The display is NOT tied to tank level.
+ *   driven by the BNO086 accelerometer. The display is NOT tied to tank level.
  * - Whenever a cup is held under the nozzle (ToF < CUP_DETECT_DIST_MM for
  *   CUP_HOLD_TIME_MS), the carbonated water pump runs. If a flavor was
  *   selected over UART, that flavor pump runs too. With no selection, plain
@@ -38,7 +38,7 @@
 #include "driver/uart.h"
 #include "driver/i2c_master.h"
 #include "led_strip.h"
-#include "bno055.h"
+#include "bno086_imu.h"
 #include "VL53L0X.h"
 #include "i2c.h"
 
@@ -64,7 +64,7 @@ static const char *TAG = "dispenser";
 #define UART_BUF_SIZE   256
 
 //I2C addresses
-#define BNO055_ADDR     0x28
+// BNO086 addresses 0x4A/0x4B are detected by bno086_start().
 #define VL53L0X_ADDR    0x29
 
 // ===================
@@ -129,11 +129,11 @@ static const char *TAG = "dispenser";
 #define BOTTOM_BAND_FRACTION  0.40f // bottom 40% of the fluid uses COLOR_BOTTOM
 
 // ==========================
-// BNO055 startup preferences
+// BNO086 startup preferences
 // ==========================
 
-#define BNO055_INIT_RETRIES     10
-#define BNO055_RETRY_DELAY_MS   500
+#define BNO086_INIT_RETRIES     5
+#define BNO086_RETRY_DELAY_MS   500
 
 // =======================================================
 // Simulation params (very sensitive, adjust with caution)
@@ -541,35 +541,30 @@ static void error_blink_red(void) {
 }
 
 // =============================
-// BNO055 Initialization routine
+// BNO086 Initialization routine
 // =============================
 
-static bno055_t imu = {};
-
-static void bno055_init_with_retry(i2c_master_dev_handle_t dev_handle) {
-    imu.config.slave_handle = dev_handle;
-    imu.config.reset.method = RESET_SW;
-
+static void bno086_init_with_retry(i2c_master_bus_handle_t bus) {
     ESP_LOGI(TAG, "Waiting for IMU");
-    for (int attempt = 1; attempt <= BNO055_INIT_RETRIES; attempt++) {
+    for (int attempt = 1; attempt <= BNO086_INIT_RETRIES; attempt++) {
         for (int i = 0; i < NUM_LEDS; i++)
             led_strip_set_pixel(led_strip, i, 0, 0, 30);
         led_strip_refresh(led_strip);
 
-        esp_err_t ret = bno055_initialize(&imu);
+        esp_err_t ret = bno086_start(bus);
         if (ret == ESP_OK) {
-            ESP_LOGI(TAG, "BNO055 detected on attempt %d!", attempt);
+            ESP_LOGI(TAG, "BNO086 acceleration ready on attempt %d!", attempt);
             led_strip_clear(led_strip);
             led_strip_refresh(led_strip);
             vTaskDelay(pdMS_TO_TICKS(200));
             return;
         }
-        ESP_LOGW(TAG, "BNO055 init attempt %d/%d failed (0x%x)", attempt, BNO055_INIT_RETRIES, ret);
+        ESP_LOGW(TAG, "BNO086 init attempt %d/%d failed (%s)", attempt, BNO086_INIT_RETRIES, esp_err_to_name(ret));
         led_strip_clear(led_strip);
         led_strip_refresh(led_strip);
-        vTaskDelay(pdMS_TO_TICKS(BNO055_RETRY_DELAY_MS));
+        vTaskDelay(pdMS_TO_TICKS(BNO086_RETRY_DELAY_MS));
     }
-    ESP_LOGE(TAG, "BNO055 not found! Check wiring.");
+    ESP_LOGE(TAG, "BNO086 not responding at 0x4A/0x4B! Check I2C mode, power, SDA/SCL and pull-ups.");
     error_blink_red();
 }
 
@@ -587,12 +582,12 @@ static void fluid_task(void *arg) {
         if (dt < (1.0f / SIM_FPS)) { vTaskDelay(1); continue; }
         last_frame = now;
 
-        esp_err_t err = bno055_get_readings(&imu, ACCELEROMETER);
-        if (err != ESP_OK) { continue; }
+        ImuAcceleration acceleration;
+        if (!bno086_latest(acceleration)) { continue; }
 
-        float ax = imu.raw_acceleration.x;
-        float ay = imu.raw_acceleration.y;
-        float az = imu.raw_acceleration.z;
+        float ax = acceleration.x;
+        float ay = acceleration.y;
+        float az = acceleration.z;
         float accel_horizontal = -ay;
         float accel_mag = sqrtf(ax * ax + ay * ay + az * az);
 
@@ -923,23 +918,9 @@ extern "C" void app_main(void)
     i2c_master_bus_handle_t bus_handle;
     ESP_ERROR_CHECK(i2c_new_master_bus(&bus_cfg, &bus_handle));
 
-    i2c_device_config_t bno_dev_cfg = {};
-    bno_dev_cfg.dev_addr_length = I2C_ADDR_BIT_LEN_7;
-    bno_dev_cfg.device_address  = BNO055_ADDR;
-    bno_dev_cfg.scl_speed_hz    = 400000;
-    bno_dev_cfg.scl_wait_us     = 0xFFFF;
-
-    i2c_master_dev_handle_t bno_handle;
-    ESP_ERROR_CHECK(i2c_master_bus_add_device(bus_handle, &bno_dev_cfg, &bno_handle));
-
     i2c.init(bus_handle, VL53L0X_ADDR);
 
-    bno055_init_with_retry(bno_handle);
-    esp_err_t ret = bno055_configure(&imu, NDOF_MODE, ACC_M_S2 | GY_DPS | EUL_DEG | TEMP_C);
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "BNO055 configure failed!");
-        error_blink_red();
-    }
+    bno086_init_with_retry(bus_handle);
     vTaskDelay(pdMS_TO_TICKS(1000));
 
     startup_animation();
